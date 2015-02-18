@@ -37,9 +37,9 @@ public final class UserVectorSplitterMapper extends
 
   private static final Logger log = LoggerFactory.getLogger(UserVectorSplitterMapper.class);
 
-  static final String USERS_FILE = "usersFile";
-  static final String MAX_PREFS_PER_USER_CONSIDERED = "maxPrefsPerUserConsidered";
-  static final int DEFAULT_MAX_PREFS_PER_USER_CONSIDERED = 10;
+  public static final String USERS_FILE = "usersFile";
+  public static final String MAX_PREFS_PER_USER_CONSIDERED = "maxPrefsPerUserConsidered";
+  public static final int DEFAULT_MAX_PREFS_PER_USER_CONSIDERED = 10;
 
   private int maxPrefsPerUserConsidered;
   private FastIDSet usersToRecommendFor;

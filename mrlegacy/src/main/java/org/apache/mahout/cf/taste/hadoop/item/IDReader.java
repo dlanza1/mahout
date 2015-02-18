@@ -42,7 +42,7 @@ import com.google.common.io.Closeables;
  */
 public class IDReader {
 
-  static final String USER_ITEM_FILE = "userItemFile";
+  public static final String USER_ITEM_FILE = "userItemFile";
 
   private static final Logger log = LoggerFactory.getLogger(IDReader.class);
   private static final Pattern SEPARATOR = Pattern.compile("[\t,]");

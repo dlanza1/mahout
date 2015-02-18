@@ -3,15 +3,12 @@ package org.apache.mahout.cf.taste.hbase.preparation.params;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.Reducer;
 
 public class CalculateParamsReducer extends
 		TableReducer<Text, Text, ImmutableBytesWritable> {
@@ -19,8 +16,7 @@ public class CalculateParamsReducer extends
 	private static int RM4_MIN_USERS;
 	
 	@Override
-	protected void setup(
-			Reducer<Text, Text, ImmutableBytesWritable, Writable>.Context context)
+	protected void setup(Context context)
 			throws IOException, InterruptedException {
 
 		RM4_MIN_USERS = context.getConfiguration().getInt("prepareparams.rm4.min_users", 6);
@@ -58,7 +54,7 @@ public class CalculateParamsReducer extends
 	private void reduceRM1(
 			Text key,
 			Iterable<Text> values,
-			Reducer<Text, Text, ImmutableBytesWritable, Writable>.Context context) throws IOException, InterruptedException {
+			Context context) throws IOException, InterruptedException {
 		
 		Iterator<Text> it = values.iterator();
 		if(!it.hasNext())
@@ -88,7 +84,7 @@ public class CalculateParamsReducer extends
 	private void reduceRM2(
 			Text key,
 			Iterable<Text> values,
-			Reducer<Text, Text, ImmutableBytesWritable, Writable>.Context context) throws IOException, InterruptedException {
+			Context context) throws IOException, InterruptedException {
 		
 		String id_item = key.toString().replaceFirst("RM2-", "");
 		String number_of_recommendations = values.iterator().next().toString();
@@ -137,7 +133,7 @@ public class CalculateParamsReducer extends
 	private void reduceRM4(
 			Text key,
 			Iterable<Text> values,
-			Reducer<Text, Text, ImmutableBytesWritable, Writable>.Context context) throws IOException, InterruptedException {
+			Context context) throws IOException, InterruptedException {
 		
 		String id_user = key.toString().replaceFirst("RM4-", "");
 		

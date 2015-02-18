@@ -13,7 +13,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.RowFilter;
-import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
 import org.apache.hadoop.hbase.mapreduce.MultiTableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -50,7 +49,7 @@ public class PrepareParams extends Configured implements Tool {
 		job.getConfiguration().set("hbase.zookeeper.quorum", "nodo1"); 
 		job.getConfiguration().set("hbase.zookeeper.property.clientPort", "2181");
 	    
-		job.setJarByClass(KeyBetweenComparable.class);
+		job.setJarByClass(PrepareParams.class);
 		
 		List<Scan> scans = new ArrayList<Scan>();
 
