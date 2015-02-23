@@ -35,6 +35,7 @@
   <packaging>jar</packaging>
 
   <build>
+  <!-- 
     <resources>
       <resource>
         <directory>src/main/resources</directory>
@@ -45,7 +46,7 @@
           <include>driver.classes.default.props</include>
         </includes>
       </resource>
-    </resources>
+    </resources> -->
     <plugins>
       <!-- create test jar so other modules can reuse the core test utility classes. -->
       <plugin>
