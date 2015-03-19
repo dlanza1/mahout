@@ -17,11 +17,14 @@
 
 package org.apache.mahout.cf.taste.hbase.item;
 
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.mahout.cf.taste.hadoop.MutableRecommendedItem;
 import org.apache.mahout.cf.taste.hadoop.RecommendedItemsWritable;
 import org.apache.mahout.cf.taste.hadoop.TasteHadoopUtils;
@@ -36,13 +39,6 @@ import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 import org.apache.mahout.math.function.Functions;
 import org.apache.mahout.math.map.OpenIntLongHashMap;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -59,13 +55,7 @@ import org.slf4j.LoggerFactory;
  * </pre>
  */
 public final class AggregateAndRecommendReducer
-		extends
-		TableReducer<VarLongWritable, PrefAndSimilarityColumnWritable, RecommendedItemsWritable>
-// Reducer<VarLongWritable,PrefAndSimilarityColumnWritable,VarLongWritable,RecommendedItemsWritable>
-{
-
-	private static final Logger log = LoggerFactory
-			.getLogger(AggregateAndRecommendReducer.class);
+		extends TableReducer<VarLongWritable, PrefAndSimilarityColumnWritable, RecommendedItemsWritable> {
 
 	public static final String ITEMID_INDEX_PATH = "itemIDIndexPath";
 	public static final String NUM_RECOMMENDATIONS = "numRecommendations";

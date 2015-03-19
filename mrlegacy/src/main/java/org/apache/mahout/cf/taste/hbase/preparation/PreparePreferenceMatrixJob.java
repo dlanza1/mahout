@@ -32,8 +32,8 @@ import org.apache.mahout.cf.taste.hadoop.EntityPrefWritable;
 import org.apache.mahout.cf.taste.hadoop.ToEntityPrefsMapper;
 import org.apache.mahout.cf.taste.hbase.ToItemPrefsMapper;
 import org.apache.mahout.cf.taste.hbase.item.ItemIDIndexMapper;
+import org.apache.mahout.cf.taste.hbase.item.RecommenderJob;
 import org.apache.mahout.cf.taste.hadoop.item.ItemIDIndexReducer;
-import org.apache.mahout.cf.taste.hadoop.item.RecommenderJob;
 import org.apache.mahout.cf.taste.hadoop.item.ToUserVectorsReducer;
 import org.apache.mahout.cf.taste.hadoop.preparation.ToItemVectorsMapper;
 import org.apache.mahout.cf.taste.hadoop.preparation.ToItemVectorsReducer;
@@ -77,6 +77,7 @@ public class PreparePreferenceMatrixJob extends AbstractJob {
     int minPrefsPerUser = Integer.parseInt(getOption("minPrefsPerUser"));
     boolean booleanData = Boolean.valueOf(getOption("booleanData"));
     float ratingShift = Float.parseFloat(getOption("ratingShift"));
+    String workingTable = getConf().get(RecommenderJob.PARAM_WORKING_TABLE);
     
     //convert items to an internal index
     Configuration mapred_config = HBaseConfiguration.create();
@@ -94,7 +95,7 @@ public class PreparePreferenceMatrixJob extends AbstractJob {
     // set other scan attrs
     
     TableMapReduceUtil.initTableMapperJob(
-        	"recommender_input",        // input table
+    		workingTable,        // input table
         	scan,               		// Scan instance to control CF and attribute selection
         	ItemIDIndexMapper.class,    // mapper class
         	VarIntWritable.class,       // mapper output key
@@ -122,7 +123,7 @@ public class PreparePreferenceMatrixJob extends AbstractJob {
     toUserVectors_hb.setJarByClass(ToItemPrefsMapper.class);     // class that contains mapper and reducer
     
     TableMapReduceUtil.initTableMapperJob(
-        	"recommender_input",        // input table
+    		workingTable,        // input table
         	scan,               		// Scan instance to control CF and attribute selection
         	ToItemPrefsMapper.class,    // mapper class
         	VarLongWritable.class,       // mapper output key

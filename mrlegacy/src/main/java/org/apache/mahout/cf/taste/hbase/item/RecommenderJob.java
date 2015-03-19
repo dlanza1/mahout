@@ -17,10 +17,15 @@
 
 package org.apache.mahout.cf.taste.hbase.item;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.mapreduce.Job;
@@ -29,12 +34,10 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.cf.taste.hadoop.EntityEntityWritable;
-import org.apache.mahout.cf.taste.hbase.item.AggregateAndRecommendReducer;
 import org.apache.mahout.cf.taste.hadoop.item.IDReader;
 import org.apache.mahout.cf.taste.hadoop.item.ItemFilterAsVectorAndPrefsReducer;
 import org.apache.mahout.cf.taste.hadoop.item.ItemFilterMapper;
@@ -45,8 +48,8 @@ import org.apache.mahout.cf.taste.hadoop.item.ToVectorAndPrefReducer;
 import org.apache.mahout.cf.taste.hadoop.item.UserVectorSplitterMapper;
 import org.apache.mahout.cf.taste.hadoop.item.VectorAndPrefsWritable;
 import org.apache.mahout.cf.taste.hadoop.item.VectorOrPrefWritable;
-import org.apache.mahout.cf.taste.hbase.preparation.PreparePreferenceMatrixJob;
 import org.apache.mahout.cf.taste.hadoop.similarity.item.ItemSimilarityJob;
+import org.apache.mahout.cf.taste.hbase.preparation.PreparePreferenceMatrixJob;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.common.HadoopUtil;
 import org.apache.mahout.common.iterator.sequencefile.PathType;
@@ -54,12 +57,6 @@ import org.apache.mahout.math.VarIntWritable;
 import org.apache.mahout.math.VarLongWritable;
 import org.apache.mahout.math.hadoop.similarity.cooccurrence.RowSimilarityJob;
 import org.apache.mahout.math.hadoop.similarity.cooccurrence.measures.VectorSimilarityMeasures;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * <p>Runs a completely distributed recommender job as a series of mapreduces.</p>
@@ -113,6 +110,8 @@ public final class RecommenderJob extends AbstractJob {
   private static final int DEFAULT_MAX_PREFS = 500;
   private static final int DEFAULT_MIN_PREFS_PER_USER = 1;
 
+  public static final String PARAM_WORKING_TABLE = "recommender.inputTablw";
+
   @Override
   public int run(String[] args) throws Exception {
 
@@ -150,6 +149,10 @@ public final class RecommenderJob extends AbstractJob {
     if (parsedArgs == null) {
       return -1;
     }
+    
+    String workingTable = "r_users";
+    
+    getConf().set(PARAM_WORKING_TABLE, workingTable);
 
     int numRecommendations = Integer.parseInt(getOption("numRecommendations"));
     String usersFile = getOption("usersFile");
@@ -246,7 +249,7 @@ public final class RecommenderJob extends AbstractJob {
       partialMultiply.setOutputFormatClass(SequenceFileOutputFormat.class);
       partialMultiply.setOutputKeyClass(VarIntWritable.class);
       partialMultiply.setOutputValueClass(VectorAndPrefsWritable.class);
-      partialMultiplyConf.setBoolean("mapred.compress.map.output", true);
+      partialMultiplyConf.setBoolean("mapreduce.compress.map.output", true);
       partialMultiplyConf.set("mapred.output.dir", partialMultiplyPath.toString());
 
       if (usersFile != null) {
@@ -306,7 +309,7 @@ public final class RecommenderJob extends AbstractJob {
       
       FileInputFormat.setInputPaths(aggregateAndRecommend_hb, new Path(aggregateAndRecommendInput));
       TableMapReduceUtil.initTableReducerJob(
-    		  					"recommender_output",
+    		  					getConf().get(PARAM_WORKING_TABLE),
     		  					AggregateAndRecommendReducer.class, 
     		  					aggregateAndRecommend_hb);
       
