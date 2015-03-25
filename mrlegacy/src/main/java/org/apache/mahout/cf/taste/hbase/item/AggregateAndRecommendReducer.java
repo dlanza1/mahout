@@ -19,20 +19,16 @@ package org.apache.mahout.cf.taste.hbase.item;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.mahout.cf.taste.hadoop.MutableRecommendedItem;
 import org.apache.mahout.cf.taste.hadoop.RecommendedItemsWritable;
 import org.apache.mahout.cf.taste.hadoop.TasteHadoopUtils;
-import org.apache.mahout.cf.taste.hadoop.TopItemsQueue;
 import org.apache.mahout.cf.taste.hadoop.item.IDReader;
 import org.apache.mahout.cf.taste.hadoop.item.PrefAndSimilarityColumnWritable;
 import org.apache.mahout.cf.taste.impl.common.FastIDSet;
-import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.VarLongWritable;
 import org.apache.mahout.math.Vector;
@@ -67,8 +63,6 @@ public final class AggregateAndRecommendReducer
 	private IDReader idReader;
 	private FastIDSet itemsToRecommendFor;
 	private OpenIntLongHashMap indexItemIDMap;
-
-	private final RecommendedItemsWritable recommendedItems = new RecommendedItemsWritable();
 
 	private static final float BOOLEAN_PREF_VALUE = 1.0f;
 
@@ -159,7 +153,7 @@ public final class AggregateAndRecommendReducer
 			}
 
 		}
-
+		
 		if (numerators == null) {
 			return;
 		}
@@ -186,7 +180,9 @@ public final class AggregateAndRecommendReducer
 	private void writeRecommendedItems(VarLongWritable userID,
 			Vector recommendationVector, Context context) throws IOException,
 			InterruptedException {
-		TopItemsQueue topKItems = new TopItemsQueue(recommendationsPerUser);
+		
+		Put put = new Put(Bytes.toBytes(String.valueOf(userID.get())));
+		
 		FastIDSet itemsForUser = null;
 
 		if (idReader != null && idReader.isUserItemFilterSpecified()) {
@@ -201,35 +197,19 @@ public final class AggregateAndRecommendReducer
 			} else { // we don't have any mappings, so just use the original
 				itemID = index;
 			}
-
-			if (shouldIncludeItemIntoRecommendations(itemID,
-					itemsToRecommendFor, itemsForUser)) {
-
+			
+			if (shouldIncludeItemIntoRecommendations(itemID, itemsToRecommendFor, itemsForUser)) {
 				float value = (float) element.get();
+				
 				if (!Float.isNaN(value)) {
-
-					MutableRecommendedItem topItem = topKItems.top();
-					if (value > topItem.getValue()) {
-						topItem.set(itemID, value);
-						topKItems.updateTop();
-					}
+					put.add(Bytes.toBytes("recommendation"), 
+							Bytes.toBytes(String.valueOf(itemID)), 
+							Bytes.toBytes(String.valueOf(value)));
 				}
 			}
 		}
 
-		List<RecommendedItem> topItems = topKItems.getTopItems();
-		if (!topItems.isEmpty()) {
-			recommendedItems.set(topItems);
-			
-			Put put = new Put(Bytes.toBytes(String.valueOf(userID.get())));
-			
-			for (RecommendedItem recommendedItem : topItems)
-				put.add(Bytes.toBytes("recommendation"), 
-						Bytes.toBytes(String.valueOf(recommendedItem.getItemID())), 
-						Bytes.toBytes(String.valueOf(recommendedItem.getValue())));
-
-    		context.write(null, put);
-		}
+		context.write(null, put);
 	}
 
 	private boolean shouldIncludeItemIntoRecommendations(long itemID,

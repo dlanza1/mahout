@@ -100,6 +100,8 @@ import org.apache.mahout.math.hadoop.similarity.cooccurrence.measures.VectorSimi
  * <p/>
  * <p>Note that because of how Hadoop parses arguments, all "-D" arguments must appear before all other
  * arguments.</p>
+ * 
+ * http://fr.slideshare.net/vangjee/a-quick-tutorial-on-mahouts-recommendation-engine-v-04
  */
 public final class RecommenderJob extends AbstractJob {
 
@@ -188,10 +190,9 @@ public final class RecommenderJob extends AbstractJob {
         "--booleanData", String.valueOf(booleanData),
         "--tempDir", getTempPath().toString(),
       });
-
+      
       numberOfUsers = HadoopUtil.readInt(new Path(prepPath, PreparePreferenceMatrixJob.NUM_USERS), getConf());
     }
-
 
     if (shouldRunNextPhase(parsedArgs, currentPhase)) {
 
