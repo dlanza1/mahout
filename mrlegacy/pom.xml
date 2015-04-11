@@ -46,7 +46,9 @@
           <include>driver.classes.default.props</include>
         </includes>
       </resource>
-    </resources> -->
+    </resources> 
+    -->
+    
     <plugins>
       <!-- create test jar so other modules can reuse the core test utility classes. -->
       <plugin>
@@ -62,6 +64,7 @@
       </plugin>
 
       <!-- create core hadoop job jar -->
+      <!-- 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
@@ -80,7 +83,7 @@
           </execution>
         </executions>
       </plugin>
-
+	  
       <plugin>
         <artifactId>maven-javadoc-plugin</artifactId>
       </plugin>
@@ -88,7 +91,8 @@
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
       </plugin>
-
+	  -->
+	  
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-remote-resources-plugin</artifactId>
@@ -241,6 +245,12 @@
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-server</artifactId>
       <version>${hbase.version}</version>
+    </dependency>
+    
+    <dependency>
+    	<groupId>recommender</groupId>
+    	<artifactId>recommender</artifactId>
+    	<version>0.0.1-SNAPSHOT</version>
     </dependency>
   </dependencies>
   

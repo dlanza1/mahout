@@ -18,9 +18,13 @@
 package org.apache.mahout.cf.taste.hbase.item;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -35,6 +39,10 @@ import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 import org.apache.mahout.math.function.Functions;
 import org.apache.mahout.math.map.OpenIntLongHashMap;
+
+import es.unex.silice.smallshi.recommender.hbase.HBaseClient;
+import es.unex.silice.smallshi.recommender.hbase.grouping.JoinGroupsJob;
+import es.unex.silice.smallshi.recommender.hbase.grouping.Properties;
 
 /**
  * <p>
@@ -59,24 +67,28 @@ public final class AggregateAndRecommendReducer
 	public static final String ITEMS_FILE = "itemsFile";
 
 	private boolean booleanData;
-	private int recommendationsPerUser;
 	private IDReader idReader;
 	private FastIDSet itemsToRecommendFor;
 	private OpenIntLongHashMap indexItemIDMap;
+	private HBaseClient hbaseClient;
+	private String workingTable;
 
 	private static final float BOOLEAN_PREF_VALUE = 1.0f;
 
 	@Override
 	protected void setup(Context context) throws IOException {
 		Configuration conf = context.getConfiguration();
-		recommendationsPerUser = conf.getInt(NUM_RECOMMENDATIONS,
-				DEFAULT_NUM_RECOMMENDATIONS);
+
 		booleanData = conf.getBoolean(RecommenderJob.BOOLEAN_DATA, false);
 		indexItemIDMap = TasteHadoopUtils.readIDIndexMap(conf.get(ITEMID_INDEX_PATH), conf);
 
 		idReader = new IDReader(conf);
 		idReader.readIDs();
 		itemsToRecommendFor = idReader.getItemIds();
+		
+		workingTable = conf.get(RecommenderJob.PARAM_WORKING_TABLE);
+		
+		hbaseClient = new HBaseClient(conf.get(Properties.HBASE_ZOOKEEPER_HOST));
 	}
 
 	@Override
@@ -183,11 +195,7 @@ public final class AggregateAndRecommendReducer
 		
 		Put put = new Put(Bytes.toBytes(String.valueOf(userID.get())));
 		
-		FastIDSet itemsForUser = null;
-
-		if (idReader != null && idReader.isUserItemFilterSpecified()) {
-			itemsForUser = idReader.getItemsToRecommendForUser(userID.get());
-		}
+		FastIDSet itemsForUser = getItemsToRecommend(userID.get());
 
 		for (Element element : recommendationVector.nonZeroes()) {
 			int index = element.index();
@@ -209,7 +217,32 @@ public final class AggregateAndRecommendReducer
 			}
 		}
 
-		context.write(null, put);
+		if(!put.isEmpty())
+			context.write(null, put);
+	}
+
+
+	private FastIDSet getItemsToRecommend(long idUser) throws IOException {
+		
+		List<Cell> columns = hbaseClient.getFamilyColumn(idUser+"", workingTable, JoinGroupsJob.CF_PREFERENCES_TEST);
+		
+		FastIDSet itemIds = new FastIDSet();
+		if(columns == null)
+			return itemIds;
+		
+		for (Cell cell : columns){
+			itemIds.add(Long.valueOf(StringE.toString(CellUtil.cloneQualifier(cell))));
+			
+			byte[] family = CellUtil.cloneFamily(cell);
+			System.out.println(Arrays.toString(family));
+			System.out.println(new String(family));
+			
+			System.out.print(new String(CellUtil.cloneQualifier(cell)) + ", ");
+		}
+		
+		System.out.println();
+		
+		return itemIds;
 	}
 
 	private boolean shouldIncludeItemIntoRecommendations(long itemID,

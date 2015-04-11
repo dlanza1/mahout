@@ -20,6 +20,7 @@ package org.apache.mahout.cf.taste.hbase.item;
 import java.io.IOException;
 import java.util.NavigableMap;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
@@ -33,14 +34,24 @@ public final class ItemIDIndexMapper extends
 
 	private final VarIntWritable indexWritable = new VarIntWritable();
 	private final VarLongWritable itemIDWritable = new VarLongWritable();
+	
+	private byte[] fcRatings;
+	
+	@Override
+	protected void setup(Context context)
+			throws IOException, InterruptedException {
+		Configuration conf = context.getConfiguration();
+		
+		fcRatings = Bytes.toBytes(conf.get(RecommenderJob.PARAM_FC_RATINGS));
+	}
 
 	@Override
 	protected void map(ImmutableBytesWritable rowKey, Result columns, Context context)
 			throws IOException, InterruptedException {
 		
-		NavigableMap<byte[], byte[]> colum_map = columns.getFamilyMap(Bytes.toBytes("pref"));
+		NavigableMap<byte[], byte[]> colum_map = columns.getFamilyMap(fcRatings);
 		for(byte[] colum: colum_map.keySet()){
-			long itemID = Long.valueOf(new String(colum));
+			long itemID = Long.valueOf(StringE.toString(colum));
 			int index = TasteHadoopUtils.idToIndex(itemID);
 			indexWritable.set(index);
 			itemIDWritable.set(itemID);

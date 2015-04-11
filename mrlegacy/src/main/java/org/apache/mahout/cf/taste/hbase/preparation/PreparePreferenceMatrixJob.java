@@ -78,12 +78,12 @@ public class PreparePreferenceMatrixJob extends AbstractJob {
     boolean booleanData = Boolean.valueOf(getOption("booleanData"));
     float ratingShift = Float.parseFloat(getOption("ratingShift"));
     String workingTable = getConf().get(RecommenderJob.PARAM_WORKING_TABLE);
+    String cfRatings = getConf().get(RecommenderJob.PARAM_FC_RATINGS);
     
     //convert items to an internal index
     Configuration mapred_config = HBaseConfiguration.create();
-    mapred_config.set("hbase.zookeeper.quorum", "nodo1"); 
-    mapred_config.set("hbase.zookeeper.property.clientPort", "2181");
     mapred_config.setBoolean("mapred.compress.map.output", true);
+    mapred_config.set(RecommenderJob.PARAM_FC_RATINGS, cfRatings);
     
 	Job itemIDIndex = Job.getInstance(mapred_config);
     itemIDIndex.setJobName(HadoopUtil.getCustomJobName(getClass().getSimpleName(), itemIDIndex, ItemIDIndexMapper.class, ItemIDIndexReducer.class));
