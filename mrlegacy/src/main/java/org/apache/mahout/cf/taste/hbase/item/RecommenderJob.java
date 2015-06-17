@@ -59,9 +59,6 @@ import org.apache.mahout.math.hadoop.similarity.cooccurrence.RowSimilarityJob;
 import org.apache.mahout.math.hadoop.similarity.cooccurrence.measures.VectorSimilarityMeasures;
 
 import es.unex.silice.smallshi.recommender.hbase.HBaseClient;
-import es.unex.silice.smallshi.recommender.hbase.grouping.JoinGroupsJob;
-import es.unex.silice.smallshi.recommender.hbase.grouping.Properties;
-import es.unex.silice.smallshi.recommender.util.PropertiesE;
 
 /**
  * <p>Runs a completely distributed recommender job as a series of mapreduces.</p>
@@ -117,8 +114,10 @@ public final class RecommenderJob extends AbstractJob {
   private static final int DEFAULT_MAX_PREFS = 500;
   private static final int DEFAULT_MIN_PREFS_PER_USER = 1;
 
-  public static final String PARAM_WORKING_TABLE = "recommender.inputTable";
-  public static final String PARAM_FC_RATINGS = "recommender.table.cf.ratings";
+  public static final String PARAM_WORKING_TABLE = "hbase.table";
+  public static final String PARAM_CF_RATINGS = "recommender.table.cf.ratings";
+  public static final String PARAM_CF_RECOMMENDATIONS = "recommender.table.cf.recommendations";
+  public static final String PARAM_TRAINING_ENVIOREMENT = "recommender.enviorement.training";
 
   @Override
   public int run(String[] args) throws Exception {
@@ -153,20 +152,15 @@ public final class RecommenderJob extends AbstractJob {
     addOption("randomSeed", null, "use this seed for sampling", false);
     addFlag("sequencefileOutput", null, "write the output into a SequenceFile instead of a text file");
 
-    Map<String, List<String>> parsedArgs = parseArguments(args);
+    Map<String, List<String>> parsedArgs = parseArguments(args, true, true);
     if (parsedArgs == null) {
       return -1;
     }
     
-    PropertiesE prop = new PropertiesE();
-    
-    String workingTable = prop.getProperty(Properties.HTABLE);
-    getConf().set(PARAM_WORKING_TABLE, workingTable);
-    getConf().set(PARAM_FC_RATINGS, JoinGroupsJob.CF_PREFERENCES_TRAINING);
-
     //Create column family recommendations
-    HBaseClient hb = new HBaseClient(prop.getProperty(Properties.HBASE_ZOOKEEPER_HOST));
-    String cfRecommendations = prop.getProperty(Properties.CF_RECOMMENDATIONS);
+    HBaseClient hb = new HBaseClient(getConf());
+    String workingTable = getConf().get(PARAM_WORKING_TABLE);
+    String cfRecommendations = getConf().get(PARAM_CF_RECOMMENDATIONS);
     if(!hb.hasColumn(workingTable, cfRecommendations))
     	hb.addColumn(workingTable, cfRecommendations);
     
@@ -303,16 +297,13 @@ public final class RecommenderJob extends AbstractJob {
       }
 
       //extract out the recommendations
-      Configuration aggregateAndRecommendConf_hb = HBaseConfiguration.create();
+      Configuration aggregateAndRecommendConf_hb = HBaseConfiguration.create(getConf());
       aggregateAndRecommendConf_hb.setBoolean("mapred.compress.map.output", true);
-      
-      aggregateAndRecommendConf_hb.set(Properties.HBASE_ZOOKEEPER_HOST, prop.getProperty(Properties.HBASE_ZOOKEEPER_HOST));
-      aggregateAndRecommendConf_hb.set(PARAM_WORKING_TABLE, prop.getProperty(Properties.HTABLE));
 
       Job aggregateAndRecommend_hb = Job.getInstance(aggregateAndRecommendConf_hb);
       aggregateAndRecommendConf_hb = aggregateAndRecommend_hb.getConfiguration();
-      
-      aggregateAndRecommend_hb.addFileToClassPath(new Path("lib/recommender.jar"));;
+     
+      aggregateAndRecommend_hb.addFileToClassPath(new Path("lib/recommender.jar"));
       
       aggregateAndRecommend_hb.setJobName(
     		  HadoopUtil.getCustomJobName(getClass().getSimpleName(), aggregateAndRecommend_hb, 

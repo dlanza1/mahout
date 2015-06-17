@@ -42,7 +42,7 @@ public final class ItemIDIndexMapper extends
 			throws IOException, InterruptedException {
 		Configuration conf = context.getConfiguration();
 		
-		fcRatings = Bytes.toBytes(conf.get(RecommenderJob.PARAM_FC_RATINGS));
+		fcRatings = Bytes.toBytes(conf.get(RecommenderJob.PARAM_CF_RATINGS));
 	}
 
 	@Override
@@ -51,7 +51,7 @@ public final class ItemIDIndexMapper extends
 		
 		NavigableMap<byte[], byte[]> colum_map = columns.getFamilyMap(fcRatings);
 		for(byte[] colum: colum_map.keySet()){
-			long itemID = Long.valueOf(StringE.toString(colum));
+			long itemID = Long.valueOf(Bytes.toString(colum));
 			int index = TasteHadoopUtils.idToIndex(itemID);
 			indexWritable.set(index);
 			itemIDWritable.set(itemID);

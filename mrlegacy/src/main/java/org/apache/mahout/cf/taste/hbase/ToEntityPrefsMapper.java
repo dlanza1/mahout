@@ -24,7 +24,6 @@ import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.mahout.cf.taste.hadoop.EntityPrefWritable;
 import org.apache.mahout.cf.taste.hbase.item.RecommenderJob;
-import org.apache.mahout.cf.taste.hbase.item.StringE;
 import org.apache.mahout.math.VarLongWritable;
 
 import java.io.IOException;
@@ -49,29 +48,31 @@ public abstract class ToEntityPrefsMapper extends
 		booleanData = jobConf.getBoolean(RecommenderJob.BOOLEAN_DATA, false);
 		ratingShift = Float.parseFloat(jobConf.get(RATING_SHIFT, "0.0"));
 		
-		fcRatings = Bytes.toBytes(jobConf.get(RecommenderJob.PARAM_FC_RATINGS));
+		fcRatings = Bytes.toBytes(jobConf.get(RecommenderJob.PARAM_CF_RATINGS));
 	}
 
 	@Override
 	protected void map(ImmutableBytesWritable key, Result columns, Context context)
 			throws IOException, InterruptedException {
 
-		long userID = Long.valueOf(StringE.toString(key.get()));
+		long userID = Long.valueOf(Bytes.toString(key.get()));
 
 		NavigableMap<byte[], byte[]> colum_map = columns.getFamilyMap(fcRatings);
 		for(byte[] colum: colum_map.keySet()){
-			long itemID = Long.valueOf(StringE.toString(colum));
+			long itemID = Long.valueOf(Bytes.toString(colum));
 			
 			if (booleanData) {
-				context.write(new VarLongWritable(userID), new VarLongWritable(
-						itemID));
+				context.write(new VarLongWritable(userID), new VarLongWritable(itemID));
 			} else {
 				float prefValue;
 				
 				try{
 					byte[] pref = columns.getValue(fcRatings, colum);
-					prefValue = Float.parseFloat(StringE.toString(pref)) + ratingShift;
+					
+					prefValue = Float.parseFloat(Bytes.toString(pref)) + ratingShift;
 				}catch(Exception ex){
+					System.out.println("WARN: the preference valur could not be parsed to float");
+					
 					prefValue = 1.0f;
 				}
 				

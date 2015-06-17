@@ -18,7 +18,6 @@
 package org.apache.mahout.cf.taste.hbase.item;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -42,7 +41,6 @@ import org.apache.mahout.math.map.OpenIntLongHashMap;
 
 import es.unex.silice.smallshi.recommender.hbase.HBaseClient;
 import es.unex.silice.smallshi.recommender.hbase.grouping.JoinGroupsJob;
-import es.unex.silice.smallshi.recommender.hbase.grouping.Properties;
 
 /**
  * <p>
@@ -72,6 +70,8 @@ public final class AggregateAndRecommendReducer
 	private OpenIntLongHashMap indexItemIDMap;
 	private HBaseClient hbaseClient;
 	private String workingTable;
+	private boolean trainingEnviorement;
+	private String recommendationsCf;
 
 	private static final float BOOLEAN_PREF_VALUE = 1.0f;
 
@@ -88,7 +88,10 @@ public final class AggregateAndRecommendReducer
 		
 		workingTable = conf.get(RecommenderJob.PARAM_WORKING_TABLE);
 		
-		hbaseClient = new HBaseClient(conf.get(Properties.HBASE_ZOOKEEPER_HOST));
+		trainingEnviorement = conf.getBoolean(RecommenderJob.PARAM_TRAINING_ENVIOREMENT, false);
+		recommendationsCf = conf.get(RecommenderJob.PARAM_CF_RECOMMENDATIONS);
+		
+		hbaseClient = new HBaseClient(conf);
 	}
 
 	@Override
@@ -195,7 +198,10 @@ public final class AggregateAndRecommendReducer
 		
 		Put put = new Put(Bytes.toBytes(String.valueOf(userID.get())));
 		
-		FastIDSet itemsForUser = getItemsToRecommend(userID.get());
+		FastIDSet itemsForUser = null;
+		if(trainingEnviorement){
+			itemsForUser = getItemsToRecommend(userID.get());
+		}
 
 		for (Element element : recommendationVector.nonZeroes()) {
 			int index = element.index();
@@ -208,9 +214,9 @@ public final class AggregateAndRecommendReducer
 			
 			if (shouldIncludeItemIntoRecommendations(itemID, itemsToRecommendFor, itemsForUser)) {
 				float value = (float) element.get();
-				
+				System.out.println("-");
 				if (!Float.isNaN(value)) {
-					put.add(Bytes.toBytes("recommendation"), 
+					put.add(Bytes.toBytes(recommendationsCf), 
 							Bytes.toBytes(String.valueOf(itemID)), 
 							Bytes.toBytes(String.valueOf(value)));
 				}
@@ -230,17 +236,8 @@ public final class AggregateAndRecommendReducer
 		if(columns == null)
 			return itemIds;
 		
-		for (Cell cell : columns){
-			itemIds.add(Long.valueOf(StringE.toString(CellUtil.cloneQualifier(cell))));
-			
-			byte[] family = CellUtil.cloneFamily(cell);
-			System.out.println(Arrays.toString(family));
-			System.out.println(new String(family));
-			
-			System.out.print(new String(CellUtil.cloneQualifier(cell)) + ", ");
-		}
-		
-		System.out.println();
+		for (Cell cell : columns)
+			itemIds.add(Long.valueOf(Bytes.toString(CellUtil.cloneQualifier(cell))));
 		
 		return itemIds;
 	}
